@@ -1,0 +1,76 @@
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline
+#+OPTIONS: author:t broken-links:nil c:nil creator:nil
+#+OPTIONS: d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t num:t
+#+OPTIONS: p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t
+#+OPTIONS: timestamp:t title:t toc:t todo:t |:t
+#+TITLE: ob-ipython
+#+DATE: January 10th, 2018
+#+AUTHOR: Elliott L Barcikowski
+#+EMAIL: elliottb@bugaboo
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: Emacs 25.2.2 (Org mode 9.0.9)
+#+OPTIONS: H:1
+#+LATEX_CLASS: beamer
+#+COLUMNS: %45ITEM %10BEAMER_env(Env) %10BEAMER_act(Act) %4BEAMER_col(Col) %8BEAMER_opt(Opt)
+#+BEAMER_THEME: default
+#+BEAMER_COLOR_THEME:
+#+BEAMER_FONT_THEME:
+#+BEAMER_INNER_THEME:
+#+BEAMER_OUTER_THEME:
+#+BEAMER_HEADER:
+
+* Introduction
+Note: use the word literate programming in this somewhere.
+* Emacs org-mode
+** what is it?
+- "Your life in plain text"
+- sophistacated mark up language, designed for organization
+** features
+- outlining
+- todos
+- folding, navigation
+- easily exported 
+- much more.. 
+
+* Babel
+Dispatch source code and execute it.
+
+** Example
+Running something like
+
+#+BEGIN_EXAMPLE
+#+BEGIN_SRC python 
+import numpy as np
+x = np.arange(10)
+return x
+#+END_SRC
+#+END_EXAMPLE
+
+Results in 
+
+#+BEGIN_SRC python :exports both :output raw
+import numpy as np
+x = np.arange(10)
+return x
+#+END_SRC
+
+#+RESULTS:
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+* ob-ipython
+
+* ob-ipython versus python notebooks?
+- intergrates with editor seemlessly
+- better for generating documents (IMO)
+- version control syncronization
+
+* Resources
+** org-mode
+- https://orgmode.org
+- Recommended: https://www.youtube.com/watch?v=oJTwQvgfgMM&t=512s
+** babel 
+** ob-ipython
+- https://github.com/gregsexton/ob-ipython
+
