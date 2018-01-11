@@ -3,18 +3,22 @@
 #+OPTIONS: d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t num:t
 #+OPTIONS: p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t
 #+OPTIONS: timestamp:t title:t toc:t todo:t |:t
-#+TITLE: bitcoin-analysis
-#+DATE: <2018-01-06 Sat>
+#+TITLE: ob-ipython Introduction  
+#+DATE: January 10th, 2018
 #+AUTHOR: Elliott L Barcikowski
 #+EMAIL: ebarcikowski@gmail.com
+#+ATTR_LATEX: :width 400px
 #+LANGUAGE: en
 #+SELECT_TAGS: export
 #+EXCLUDE_TAGS: noexport
 #+CREATOR: Emacs 25.2.2 (Org mode 9.0.9)
+#+STARTUP: inlineimages
+#+OPTIONS: H:2
+#+COLUMNS: %20ITEM %13BEAMER_env(Env) %6BEAMER_envargs(Args) %4BEAMER_col(Col) %7BEAMER_extra(Extra)
 
-:STARTUP:
-#+BEGIN_SRC ipython :session :output raw drawer :exports both
-
+* Startup                                                          :noexport:
+:STARTUP:  
+#+BEGIN_SRC ipython :session :output raw drawer :exports none
 # either put in startup file or at start of ob-ipython based org
 # document.
 %matplotlib inline 
@@ -24,14 +28,16 @@ import numpy as np
 import pandas as pd
 import math
 from scipy.stats import norm
+import statsmodels.api as sm
 import matplotlib as mpl
+import pykalman
 mpl.rcParams['axes.facecolor'] = 'white'
 mpl.rcParams['axes.edgecolor'] = 'black'
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['figure.facecolor'] = 'white'
 mpl.rcParams['figure.edgecolor'] = 'black'
 mpl.rcParams['figure.figsize'] = (8, 6)
-mpl.rcParams['figure.dpi'] = 100
+mpl.rcParams['figure.dpi'] = 200
 import IPython
 from tabulate import tabulate
 
@@ -50,20 +56,619 @@ ip.display_formatter.formatters['text/org'] = OrgFormatter()
 #+RESULTS:
 
 :END:
+:DATA_CLEANUP:
+The data used for this analysis was found by searching around on the Internet, 
+then copy and pasting from a HTML table into a text file.  Some clean up
+had to be done.
 
-[[images/py9688QJg.png]]
+This step will result in csv files with open, high, closed, low, and volume
+for GBTC and BTC.
 
-
-#+BEGIN_SRC ipython :session :ipyfile images/py9688QJg.png :output raw
-plt.plot([1, 3, 4])
+Here's a sed one liner for each data set.  Don't ask!
+#+BEGIN_SRC sh :result output drawer :export none
+sed data/bitcoin_data.txt -r -e '3,$s/[[:space:]]/,/g'  \
+   -e 's/,00:00:00//' -e 's/\xE2\x80\x94//g' > data/bitcoin.csv
+sed data/gbtc_data.txt -r -e '3,$s/,//g' -e '3,$s/[[:space:]]/,/g' \
+   -e '3,$s/,/ /' -e '3,$s/,/ /' > data/gbtc.csv
 #+END_SRC
-
-#+ATTR_ORG: :width 600
 #+RESULTS:
-: : [<matplotlib.lines.Line2D at 0x7f284b0317b8>]
-: [[file:images/py9688QJg.png]]
+
+* Import data                                                      :noexport:
+The following is the local paths to the cleaned data files.
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+btc_file = 'data/bitcoin.csv'
+gbtc_file = 'data/gbtc.csv'
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+:END:
+
+** Import the data.
+Load the bitcoin and GBTC data into into pandas DataFrames.
+Annoyingly, each data set has a different date format, but
+pandas manges that automatically.
+*** BTC 
+#+BEGIN_SRC ipython :session  :exports none :results raw drawer
+df_btc = pd.read_csv(btc_file, skiprows=2, 
+   names=['date', 'open', 'high', 'low', 'close'], 
+   usecols=[0, 1, 2, 3, 4], index_col=0, parse_dates=True,
+   dtype=np.float64)
+df_btc.head()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+| date                | open | high |  low | close |
+|---------------------+------+------+------+-------|
+| 2011-09-13 00:00:00 |  5.8 |    6 | 5.65 |  5.97 |
+| 2011-09-14 00:00:00 | 5.58 | 5.72 | 5.52 |  5.53 |
+| 2011-09-15 00:00:00 | 5.12 | 5.24 |    5 |  5.13 |
+| 2011-09-16 00:00:00 | 4.82 | 4.87 |  4.8 |  4.85 |
+| 2011-09-17 00:00:00 | 4.87 | 4.87 | 4.87 |  4.87 |
+:END:
+
+*** GBTC
+#+BEGIN_SRC ipython :session  :exports none :results raw drawer
+df_gbtc = pd.read_csv(gbtc_file, skiprows=2, 
+   names=['date', 'open', 'high', 'low', 'close'], 
+   usecols=[0, 1, 2, 3, 4], index_col=0, parse_dates=True,
+   dtype=np.float64)
+df_gbtc.sort_index(inplace=True)
+df_gbtc.head()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+| date                |  open |  high |   low | close |
+|---------------------+-------+-------+-------+-------|
+| 2015-05-05 00:00:00 |    55 |    55 | 94.86 |    55 |
+| 2015-05-07 00:00:00 |    40 |    65 |    66 |    40 |
+| 2015-05-08 00:00:00 |    49 |    50 |    59 |    49 |
+| 2015-05-11 00:00:00 |    50 | 57.95 | 57.95 |    50 |
+| 2015-05-12 00:00:00 | 49.95 | 50.01 | 50.01 |    49 |
+:END:
+
+** Match times
+GBTC didn't exist until the summer of 2015.  Also, GBTC is only
+traded Monday through Friday.  Drop Bitcoin datess that aren't
+in the GBTC data set.
+#+BEGIN_SRC ipython :session  :exports both :results raw drawer
+df_btc = df_btc.loc[df_btc.index.isin(df_gbtc.index)]
+df_btc.head()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+| date                |   open |   high |    low |  close |
+|---------------------+--------+--------+--------+--------|
+| 2015-05-05 00:00:00 | 238.22 | 238.78 | 229.66 | 235.12 |
+| 2015-05-07 00:00:00 | 228.34 |    240 | 227.35 | 236.87 |
+| 2015-05-08 00:00:00 | 236.92 | 246.57 | 235.29 |  243.2 |
+| 2015-05-11 00:00:00 | 239.13 | 244.51 | 237.99 |  241.3 |
+| 2015-05-12 00:00:00 |  241.3 |    242 | 237.54 | 241.03 |
+:END:
+
+#+BEGIN_SRC ipython :session  :exports both :results raw drawer
+assert len(df_btc) == len(df_gbtc)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+:END:
+
+This analysis will only use the close times, so let's just
+pull them out and give them a short name. 
+#+BEGIN_SRC ipython :session :exports none :results raw drawer
+btc = df_btc['close']
+gbtc = df_gbtc['close']
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+:END:
+
+* Introduction
+** Goals
+1. Introduce ob-ipython
+   + This means we must discuss org, babel 
+2. Do a quick live example
+3. Comments from my experience
+4. Generate this talk
+
+** Emacs org-mode
+*** What is it?
+- "Your life in plain text"
+- sophistacated mark up language, designed for organization
+*** Features
+- outlining
+- manages tasks, agendas, todos
+- folding, navigation, links
+- easily exported 
+- much more 
+  + really, org has an enormous amount of functionality
+
+** Babel
+Dispatch source code and execute it inside org mode. 
+- Support for shell, R, perl, and more
+- Can generate tables
+- Can include figures inline
+- "Literate Programming"
+
+*** Example                                                   :BMCOL:B_block:
+    :PROPERTIES:
+    :BEAMER_col: 0.5
+    :BEAMER_env: block
+    :END:
+
+#+LATEX: \small
+#+BEGIN_EXAMPLE
+#+BEGIN_SRC python 
+import numpy as np
+x = np.arange(5)
+return x
+#+END_SRC
+#+END_EXAMPLE
+
+*** Evaluates to                                              :BMCOL:B_block:
+    :PROPERTIES:
+    :BEAMER_col: 0.5
+    :BEAMER_env: block
+    :END: 
+#+LATEX: \small
+#+BEGIN_SRC python :exports results :output raw
+import numpy as np
+x = np.arange(5)
+return x
+#+END_SRC
+
+#+RESULTS:
+| 0 | 1 | 2 | 3 | 4 |
+
+** ob-ipython
+- Allows Babel to interact with a Jupyter kernel
+- Different kernel types
+  + I havent tried this
+- Remote kernels
+- Inline plotting
+- ipython features 
 
 
-#+BEGIN_SRC ipython :session :ipyfile /home/elliottb/local/src/ob-ipython-meetup/analysis/images/py9688QCs.png :exports both
+* Analysis Bitcoin versus GBTC
+
+** Bitcoin - GBTC
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.3
+    :END:
+    #+LATEX: \small
+    - GBTC is a trust that holds BTC
+      + Manges serves, security, etc.
+    - One GBTC share represents .1 BTC
+    - Generally more liquid than BTC
+    - Only trades Monday - Friday
+*** Simulation                                                :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END: 
+
+#+BEGIN_SRC ipython :session :ipyfile images/py8889RHV.png :exports results :results raw drawer
+btc.plot(label='BTC')
+_ = (gbtc*10.0).plot(label='GBTC / 10')
+plt.ylabel('[$]', rotation=0, labelpad=10)
+_ = plt.legend()
+#+END_SRC
+
+#+ATTR_LaTeX: :width .5\textwidth :float t :placement [H]
+#+RESULTS:
+:RESULTS:
+[[file:images/py8889RHV.png]]
+:END:
+:END:
+*** Thesis
+When GBTC dips relative to BTC it could be an opportunity.
+
+** Do fit                                                          :noexport:
+#+BEGIN_SRC ipython :session :exports both :results output
+x = sm.add_constant(btc, prepend=False)
+ols = sm.OLS(gbtc, x).fit()
+print(ols.summary())
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                  close   R-squared:                       0.971
+Model:                            OLS   Adj. R-squared:                  0.971
+Method:                 Least Squares   F-statistic:                 2.209e+04
+Date:                Wed, 10 Jan 2018   Prob (F-statistic):               0.00
+Time:                        11:48:31   Log-Likelihood:                -3825.0
+No. Observations:                 672   AIC:                             7654.
+Df Residuals:                     670   BIC:                             7663.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+close          0.1314      0.001    148.619      0.000       0.130       0.133
+const          7.4925      3.220      2.327      0.020       1.170      13.815
+==============================================================================
+Omnibus:                      315.228   Durbin-Watson:                   0.548
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):            12343.035
+Skew:                          -1.392   Prob(JB):                         0.00
+Kurtosis:                      23.810   Cond. No.                     4.23e+03
+==============================================================================
+
+Warnings:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 4.23e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+#+end_example
+
+** Fit with Least Squares
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - Ok, it has a linear relationship 
+    - But, does this model the aspects that we want to trade?
+*** Simulation                                                :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END: 
+#+BEGIN_SRC ipython :session :ipyfile images/py888957K.png :exports results :results raw drawer
+cm = plt.get_cmap('jet')
+colors = np.linspace(0.1, 1, len(btc))
+sc = plt.scatter(btc, gbtc, s=30, c=colors, cmap=cm, edgecolor='k', alpha=0.7)
+ols_x = np.linspace(np.min(btc), np.max(btc), 100)
+ols_y = ols_x * ols.params[0] + ols.params[1]
+plt.plot(ols_x, ols_y, linewidth=2, color='k')
+plt.xlabel('BTC [$]')
+plt.ylabel('GBTC [$]')
+cb = plt.colorbar(sc)
+_ = cb.ax.set_yticklabels([str(p.date()) for p in btc[::len(btc)//9].index])
 
 #+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:images/py888957K.png]]
+:END:
+
+** Kalman Filter Approach (1)
+A kalman filter may be used to dynamically estimate 
+the relationship between the two sets of data.
+
+Allow
+\begin{equation}
+\vec{x}_{t} = 
+\begin{bmatrix}
+m_{t} \\
+b_{t}
+\end{bmatrix}
+\end{equation}
+
+where $m_{t}$ is the slope and $b_{t}$ is the intercept, 
+similar to our fit above.
+
+Then, the kalman transition equation may be written,
+trivially as
+\begin{equation}
+\vec{x}_{t+1} =
+\begin{bmatrix}
+1 & 0 \\
+0 & 1 
+\end{bmatrix}
+\vec{x}_{t}
++ \vec{q}
+\end{equation}
+and 
+\begin{equation}
+z_{t} = 
+\begin{bmatrix}
+BTC_{t} & 1
+\end{bmatrix} 
+\vec{x}_{t} + R
+\end{equation}
+
+** Kalman Filter Approach (2)
+Our system has now been written as a Kalman filter with $z_{t}$
+representing the state $t$ of the price of GBTC and $h_{t}$ 
+representing the price of BTC at time $t$.  In this system,
+the Kalman state, $x_{t}$ is our fit parameters $m$ and $b$,
+the tradtional Kalman transition matrix,
+\begin{equation}
+A_{t} =
+\begin{bmatrix}
+1 & 0 \\
+0 & 1 
+\end{bmatrix}
+\end{equation}
+and the observation matrix $H_{t}$ holds the Bitcoin prices.
+
+** Apply Kalman Filter
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - Used pykalman package
+    - Slope, intercept $(m, b)$ for each data point
+    - Covariances for each data point
+*** Kalman State                                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END: 
+#+BEGIN_SRC ipython :session  :exports results :results raw drawer
+# y is 1-dimensional, (alpha, beta) is 2-dimensional
+# the 
+obs_mat = sm.add_constant(btc.values, prepend=False)[:, np.newaxis]
+kf = pykalman.KalmanFilter(n_dim_obs=1, n_dim_state=2, 
+                           initial_state_mean=np.ones(2),
+                           initial_state_covariance=np.ones((2, 2)),
+                           transition_matrices=np.eye(2),
+                           observation_matrices=obs_mat,
+                           observation_covariance=1e5,
+                           transition_covariance=0.01**2* np.eye(2))
+state_means, state_covs = kf.filter(gbtc)
+beta_kf = pd.DataFrame({'m': state_means[:,0], 'b':state_means[:,1]},
+                       index=btc.index)
+_ = beta_kf.plot(subplots=True, title='Kalman state')
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./obipy-resources/31583t1.png]]
+:END:
+
+** Error                                                           :noexport:
+Calculate the error as
+\begin{equation}
+$sigma_{gbtc}$ = \sqrt{(p_{t} * $\sigma_{m})^{2} + \sigma_{b}^{2}}
+\end{equation}
+#+BEGIN_SRC ipython :session :ipyfile images/py8889URe.png :exports both :results raw drawer
+sigmas = np.sqrt((btc * state_covs[:,0,0])**2 + state_covs[:,1,1]**2 + 2 * btc * state_covs[:,0,1])
+spread_kf = gbtc - (btc * beta_kf['m'] + beta_kf['b'])
+plt.plot(sigmas)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: [<matplotlib.lines.Line2D at 0x7f50d704db38>]
+[[file:images/py8889URe.png]]
+:END:
+
+** Residuals (1)
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - Calculate errors from the returned state covariance
+    - Clearly this system behaves differently as bitcoin takes off
+*** Simulation                                                :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END: 
+\hspace{.25\textwidth}
+$r_{t} = \frac{GBTC_{t} - m_{t} BTC_{t} - b_{t}}{\sigma_{t}}$
+
+#+BEGIN_SRC ipython :session :ipyfile images/py8889gad.png :exports results :results raw drawer
+spread_kf = gbtc - btc * beta_kf['m'] - beta_kf['b']
+(spread_kf/sigmas).plot()
+plt.plot([spread_kf.index.min(), spread_kf.index.max()], [-1, -1], 'r')
+_ = plt.plot([spread_kf.index.min(), spread_kf.index.max()], [1, 1], 'r')
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:images/py8889gad.png]]
+:END:
+** Residuals (2)
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - Up to April 2017
+    - Thesis seems to play out
+
+*** A right block                             :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END:
+#+BEGIN_SRC ipython :session :ipyfile images/py8889HVA.png :exports results :results raw drawer
+f, axs = plt.subplots(2, 1)
+axs[0].plot(gbtc[:500], label='GBTC') 
+axs[0].set_ylabel('[$]', rotation=0, labelpad=10)
+axs[0].legend()
+axs[0].set_title('before April 2017')
+spread_kf = gbtc - btc * beta_kf['m'] - beta_kf['b']
+to_plot = (spread_kf/sigmas)[0:500]
+# ylim=[-5, 5]
+to_plot.plot(ax=axs[1])
+times = [to_plot.index.min(), to_plot.index.max()]
+plt.plot(times, [-1, -1], 'r')
+_ = plt.plot(times, [1, 1], 'r', label='residuals')
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:images/py8889HVA.png]]
+:END:
+
+** Residuals (3)
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - After to April 2017
+    - Model performance has completely changed
+      + Choices for $R$, $q$ for the whole data set
+*** A right block                             :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END:
+#+BEGIN_SRC ipython :session :ipyfile images/py8889IWH.png :exports results :results raw drawer
+f, axs = plt.subplots(2, 1)
+axs[0].plot(gbtc[500:], label='GBTC')
+axs[0].set_ylabel('[$]', rotation=0, labelpad=10)
+axs[0].set_title('after April 2017')
+spread_kf = gbtc - btc * beta_kf['m'] - beta_kf['b']
+to_plot = (spread_kf/sigmas)[500:]
+to_plot.plot(ax=axs[1])
+times = [to_plot.index.min(), to_plot.index.max()]
+plt.plot(times, [-1, -1], 'r')
+_ = plt.plot(times, [1, 1], 'r')
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:images/py8889IWH.png]]
+:END:
+
+#+BEGIN_SRC ipython :session :ipyfile images/py8889VLx.png :exports both :results raw drawer
+#+END_SRC
+
+** Histogram residuals                                             :noexport:
+Histogram these residual, clearly around the take off of bitcoin 
+this models performance changes dramatically.
+#+BEGIN_SRC ipython :session :ipyfile images/py8889hbk.png :exports both :results raw drawer
+residuals = spread_kf/sigmas
+sb.distplot(residuals[:500], fit=norm, kde=False, bins=50, label='before April 2017')
+# sb.distplot(residuals[500:], fit=norm, kde=False, bins=50, label='after April 2017')
+_ = plt.legend()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:images/py8889hbk.png]]
+:END:
+
+
+** Backtest
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - When GBTC dips below $\sigma$ buy
+    - Sell at above $\sigma$
+    - Should have just held BTC from 2009 ;-)
+
+*** Simulation                                                :BMCOL:B_block:
+    :PROPERTIES:
+    :BEAMER_col: 0.55
+    :BEAMER_env: block
+    :END: 
+#+LATEX: \tiny
+#+BEGIN_SRC ipython :session :ipyfile images/py8889icr.png :exports code :results raw drawer
+thresh = 1.0
+money = [(gbtc.index[0], 0.0)]
+in_trade = False
+buys = []
+sells = []
+for date, price, res in zip(gbtc.index, gbtc, residuals):
+    if in_trade:
+        if res > thresh:
+            money.append((date, money[-1][1] + price))
+            in_trade = False
+            sells.append((date, price))
+    else:
+        if res < -1 * thresh:
+            money.append((date, money[-1][1] - price))
+            in_trade = True
+            buys.append((date, price))
+if in_trade:
+    money.append((date, money[-1][1] + price))
+    sells.append((date, price))
+        
+buys = np.array(buys)
+sells = np.array(sells)
+money = np.array(money)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+:END:
+
+** Trades
+*** A left block                              :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+    - Not a particular exciting trade
+    - Should have just held BTC from 2009 ;-)
+
+*** A right block                             :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END:
+#+BEGIN_SRC ipython :session  :exports results :results raw drawer
+f, axs = plt.subplots(2, 1, figsize=(8.5, 7))
+axs[0].set_title('entry and exit points')
+axs[0].set_ylabel('[\$]', rotation=0, labelpad=10)
+axs[0].plot(buys[:,0], buys[:,1], '-o', label='buys')
+axs[0].plot(sells[:,0], sells[:,1], '-o', label='sells')
+axs[1].plot(money[:,0], money[:,1], '-o')
+axs[1].set_title('net profits')
+_ = axs[1].set_ylabel('[\$]', rotation=0, labelpad=0)
+#+END_SRC
+
+#+ATTR_LaTeX: :width 1.0\textwidth :float t :placement [H]
+#+RESULTS:
+:RESULTS:
+[[file:./obipy-resources/3158p3E.png]]
+:END:
+
+*** What are we left with?
+#+BEGIN_SRC ipython :session  :exports results :results output drawer
+print('{:.2f}'.format(money[-1][1]))
+#+END_SRC
+
+#+CAPTION: money
+#+RESULTS:
+:RESULTS:
+1628.89
+:END:
+
+* Conclusions
+
+** ob-ipython versus python notebooks (IMO)
+*** For                                                       :BMCOL:B_block:
+    :PROPERTIES:
+    :BEAMER_col: 0.50
+    :BEAMER_env: block
+    :END:
+    - Integrates with org and emacs
+    - Works better with source control
+    - Code is just text files
+    - Better tools for documents 
+
+*** Against                                                   :BMCOL:B_block:
+    :PROPERTIES:
+    :BEAMER_col: 0.5
+    :BEAMER_env: block
+    :END: 
+    - Needs emacs
+    - More cumbersome to excute lots of cells
+    - Lots of boilerplate
+    - No else on my team uses this
+    - I hate LaTeX
+
+** Resources
+*** org-mode
+#+LATEX: \tiny
+- https://orgmode.org
+- Recommended: https://www.youtube.com/watch?v=oJTwQvgfgMM&t=512s
+*** Babel 
+#+LATEX: \tiny
+- https://orgmode.org/worg/org-contrib/babel/intro.html
+*** ob-ipython
+#+LATEX: \tiny
+- https://github.com/gregsexton/ob-ipython
+*** Beamer
+#+LATEX: \tiny
+- https://github.com/dfeich/org-babel-examples/blob/master/beamer/beamer-example.org
+*** Kalman Analysis
+#+LATEX: \tiny
+- https://www.quantopian.com/posts/quantcon-2016-using-the-kalman-filter-in-algorithmic-trading

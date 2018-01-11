@@ -21,47 +21,7 @@
 #+BEAMER_OUTER_THEME:
 #+BEAMER_HEADER:
 
-* Introduction
-Note: use the word literate programming in this somewhere.
-* Emacs org-mode
-** what is it?
-- "Your life in plain text"
-- sophistacated mark up language, designed for organization
-** features
-- outlining
-- todos
-- folding, navigation
-- easily exported 
-- much more.. 
 
-* Babel
-Dispatch source code and execute it.
-
-** Example
-Running something like
-
-#+BEGIN_EXAMPLE
-#+BEGIN_SRC python 
-import numpy as np
-x = np.arange(10)
-return x
-#+END_SRC
-#+END_EXAMPLE
-
-Results in 
-
-#+BEGIN_SRC python :exports both :output raw
-import numpy as np
-x = np.arange(10)
-return x
-#+END_SRC
-
-#+RESULTS:
-| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-
-* ob-ipython
-
-* ob-ipython versus python notebooks?
 - intergrates with editor seemlessly
 - better for generating documents (IMO)
 - version control syncronization
