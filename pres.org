@@ -37,7 +37,7 @@ mpl.rcParams['axes.grid'] = True
 mpl.rcParams['figure.facecolor'] = 'white'
 mpl.rcParams['figure.edgecolor'] = 'black'
 mpl.rcParams['figure.figsize'] = (8, 6)
-mpl.rcParams['figure.dpi'] = 200
+mpl.rcParams['figure.dpi'] = 400
 import IPython
 from tabulate import tabulate
 
