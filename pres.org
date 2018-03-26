@@ -233,9 +233,7 @@ return x
 - Inline plotting
 - ipython features 
 
-
 * Analysis Bitcoin versus GBTC
-
 ** Bitcoin - GBTC
 *** A left block                              :BMCOL:
     :PROPERTIES:
@@ -399,9 +397,9 @@ and the observation matrix $H_{t}$ holds the Bitcoin prices.
     :PROPERTIES:
     :BEAMER_col: 0.7
     :END: 
-#+BEGIN_SRC ipython :session  :exports results :results raw drawer
+
+#+BEGIN_SRC ipython :session :ipyfile images/py13291Ku0.png :exports results :results raw drawer
 # y is 1-dimensional, (alpha, beta) is 2-dimensional
-# the 
 obs_mat = sm.add_constant(btc.values, prepend=False)[:, np.newaxis]
 kf = pykalman.KalmanFilter(n_dim_obs=1, n_dim_state=2, 
                            initial_state_mean=np.ones(2),
@@ -418,7 +416,7 @@ _ = beta_kf.plot(subplots=True, title='Kalman state')
 
 #+RESULTS:
 :RESULTS:
-[[file:./obipy-resources/31583t1.png]]
+[[file:images/py13291Ku0.png]]
 :END:
 
 ** Error                                                           :noexport:
@@ -603,7 +601,7 @@ money = np.array(money)
     :PROPERTIES:
     :BEAMER_col: 0.7
     :END:
-#+BEGIN_SRC ipython :session  :exports results :results raw drawer
+#+BEGIN_SRC ipython :session :ipyfile images/py132918wP.png :exports results :results raw drawer
 f, axs = plt.subplots(2, 1, figsize=(8.5, 7))
 axs[0].set_title('entry and exit points')
 axs[0].set_ylabel('[\$]', rotation=0, labelpad=10)
