@@ -1,0 +1,12 @@
+jupyter
+ipython
+jupyter_console
+jupyter_client
+matplotlib
+numpy
+pandas
+seaborn
+scipy
+pykalman
+statsmodels
+tabulate
