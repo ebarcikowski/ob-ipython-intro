@@ -15,6 +15,8 @@
 ;; display/update images in the buffer after I evaluate
 (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
 
+(add-hook 'org-mode-hook 'yas-minor-mode)
+
 (setq-default
  org-return-follows-link t
  org-image-actual-width '(800)
