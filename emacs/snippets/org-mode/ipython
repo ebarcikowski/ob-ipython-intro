@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: ipython block
+# key: py
+# --
+#+BEGIN_SRC ipython :session ${1::ipyfile ${2:$$(concat (file-name-as-directory "images") (concat (make-temp-name "py") ".png"))}} :exports ${3:both} :results raw ${4:drawer}
+$0
+#+END_SRC
