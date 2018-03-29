@@ -68,7 +68,7 @@ found Org to be extremely useful and use it everyday.
 - Recommended: https://www.youtube.com/watch?v=oJTwQvgfgMM&t=512s
   + For me, Org started with this talk.
 ** Babel 
-Babel is a system of running source code inside Org.  It's 
+Babel is a system of running source code inside Org. 
 ob-ipython is effectively a Babel extension.
 - https://orgmode.org/worg/org-contrib/babel/intro.html
 ** ob-ipython
