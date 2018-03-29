@@ -1,14 +1,14 @@
 #+TITLE: ob-ipython Introduction
 * Synopsis
 This project generates a talk that I gave to the Salt Lake City Python Meetup
-group on January 10th, 2018 to show off the functionality of ob-ipython.
-The vision was to generate the actual presentation with ob-ipython and 
-org-mode that does a minimal analysis and transition between the source
+group on January 10th, 2018 to show off the functionality of ob-ipython and 
+org-mode.  The vision was to generate the actual presentation with ob-ipython 
+and org-mode that does a minimal analysis and transition between the source
 and the slides to show how ob-ipython works. 
 
 Honestly, I'm not sure how well it worked and was certainly too much 
-for a 10 minute talk.  However, it does demonstate a lot of functionality
-of ob-ipython and its ablity to maintain notes and documentation without
+for a 10 minute talk.  But, it does demonstrate a lot of functionality
+of ob-ipython and its ability to maintain notes and documentation without
 the need to context switch from your day to day software development.
 
 If you want to get an idea of what a workflow with ob-ipython and Org could
@@ -19,7 +19,7 @@ To make use of this talk, it will probably be most useful to look at the
 generated PDF and the Org document in separate windows and try to feel for 
 how Org mode, combined with ob-ipython, could be useful for note taking.
 
-In my opinion, ob-ipython is an exellent way to maintain notes and figures 
+In my opinion, ob-ipython is an excellent way to maintain notes and figures 
 of an on-going analysis.  I personally prefer it to Jupyter notebooks as
 Org documents feel more natural to write and fit better into source control.
 
@@ -46,12 +46,43 @@ pip3 install -r requirements
 #+END_EXAMPLE
 
 This will work fine in a virtual environment, just make sure you load it before
-launching Emacs, or use Emacs tools to load the virtual environment.
+launching Emacs, or use Emacs tools (to load the virtual environment.
 
 This was done with Python 3.6.  I have don't know if you'll have any luck with
 Python 2.
 
-* Gotchas
+* Now what
+
+If you have everything installed correctly, you can then execute the
+emacs function, =org-beamer-export-to-pdf=, which can be found by 
+trying =M-x= and searching for that command.
+
+* Resources
+If you are interested in using Org or ob-ipython, you'll need to look
+this documentation.
+
+** Org
+All of the ob-ipython stuff in here is built on Org mode.  I have 
+found Org to be extremely useful and use it everyday.  
+- https://orgmode.org
+- Recommended: https://www.youtube.com/watch?v=oJTwQvgfgMM&t=512s
+  + For me, Org started with this talk.
+** Babel 
+Babel is a system of running source code inside Org.  It's 
+ob-ipython is effectively a Babel extension.
+- https://orgmode.org/worg/org-contrib/babel/intro.html
+** ob-ipython
+Here's the ob-ipython documentation.
+- https://github.com/gregsexton/ob-ipython
+** Beamer
+I personally have never used Beamer until this talk.  This Beamer
+example was critical!
+- https://github.com/dfeich/org-babel-examples/blob/master/beamer/beamer-example.org
+
+** Kalman Analysis
+The analysis method presented in this presentation was taken from the 
+following page.
+- https://www.quantopian.com/posts/quantcon-2016-using-the-kalman-filter-in-algorithmic-trading
 
 
 
