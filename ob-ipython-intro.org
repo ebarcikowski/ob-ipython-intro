@@ -525,9 +525,6 @@ _ = plt.plot(times, [1, 1], 'r')
 [[file:images/py8889IWH.png]]
 :END:
 
-#+BEGIN_SRC ipython :session :ipyfile images/py8889VLx.png :exports both :results raw drawer
-#+END_SRC
-
 ** Histogram residuals                                             :noexport:
 Histogram the residuals, clearly around the take off of bitcoin 
 this model's really only models the data in the first period.
