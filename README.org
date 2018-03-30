@@ -51,11 +51,19 @@ launching Emacs, or use Emacs tools (to load the virtual environment.
 This was done with Python 3.6.  I have don't know if you'll have any luck with
 Python 2.
 
-* Now what
+* Tips for non-Emacs Users
 
-If you have everything installed correctly, you can then execute the
-emacs function, =org-beamer-export-to-pdf=, which can be found by 
-trying =M-x= and searching for that command.
+If you have everything installed correctly, you can generate the talk by 
+by executing the
+emacs function, =org-beamer-export-to-pdf=.  Emacs functions can be found
+by typing =M-x= and typing the start of the command.
+
+An ipython block can be executed with =C-c C-c=.  Try to to edit a block and 
+regenerate a figure or piece of analysis.
+
+ob-ipython (and Org) can use a lot of boiler-plate, this can be remedied with Emacs
+snippets.  I've include on for ipython blocks.  Simply type =py= followed with a 
+=Tab=.  You can then tab through options for figures and other parameters.
 
 * Resources
 If you are interested in using Org or ob-ipython, you'll need to look
