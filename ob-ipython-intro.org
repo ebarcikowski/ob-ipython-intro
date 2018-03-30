@@ -235,7 +235,7 @@ return x
 
 * Analysis Bitcoin versus GBTC
 ** Bitcoin - GBTC
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.3
     :END:
@@ -305,7 +305,7 @@ strong multicollinearity or other numerical problems.
 #+end_example
 
 ** Fit with Least Squares
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
@@ -386,7 +386,7 @@ A_{t} =
 and the observation matrix $H_{t}$ holds the Bitcoin prices.
 
 ** Apply Kalman Filter
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
@@ -437,7 +437,7 @@ plt.plot(sigmas)
 :END:
 
 ** Residuals (1)
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
@@ -462,14 +462,14 @@ _ = plt.plot([spread_kf.index.min(), spread_kf.index.max()], [1, 1], 'r')
 [[file:images/py8889gad.png]]
 :END:
 ** Residuals (2)
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
     - Up to April 2017
     - Thesis seems to play out
 
-*** A right block                             :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.7
     :END:
@@ -495,14 +495,14 @@ _ = plt.plot(times, [1, 1], 'r', label='residuals')
 :END:
 
 ** Residuals (3)
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
     - After to April 2017
     - Model performance has completely changed
       + Choices for $R$, $q$ for the whole data set
-*** A right block                             :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.7
     :END:
@@ -548,7 +548,7 @@ _ = plt.legend()
 
 
 ** Backtest
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
@@ -593,14 +593,14 @@ money = np.array(money)
 :END:
 
 ** Trades
-*** A left block                              :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.40
     :END:
     - Not a particular exciting trade
     - Should have just held BTC from 2009 ;-)
 
-*** A right block                             :BMCOL:
+*** 								      :BMCOL:
     :PROPERTIES:
     :BEAMER_col: 0.7
     :END:
@@ -618,7 +618,8 @@ _ = axs[1].set_ylabel('[\$]', rotation=0, labelpad=0)
 #+ATTR_LaTeX: :width 1.0\textwidth :float t :placement [H]
 #+RESULTS:
 :RESULTS:
-[[file:./obipy-resources/3158p3E.png]]
+# Out[40]:
+[[file:images/py132918wP.png]]
 :END:
 
 *** What are we left with?
