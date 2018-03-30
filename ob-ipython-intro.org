@@ -529,17 +529,20 @@ _ = plt.plot(times, [1, 1], 'r')
 #+END_SRC
 
 ** Histogram residuals                                             :noexport:
-Histogram these residual, clearly around the take off of bitcoin 
-this models performance changes dramatically.
+Histogram the residuals, clearly around the take off of bitcoin 
+this model's really only models the data in the first period.
 #+BEGIN_SRC ipython :session :ipyfile images/py8889hbk.png :exports both :results raw drawer
 residuals = spread_kf/sigmas
-sb.distplot(residuals[:500], fit=norm, kde=False, bins=50, label='before April 2017')
-# sb.distplot(residuals[500:], fit=norm, kde=False, bins=50, label='after April 2017')
+bins = np.linspace(-50, 50, 30)
+sb.distplot(residuals[:500], fit=norm, kde=False, bins=bins, label='before April 2017')
+sb.distplot(residuals[500:], fit=norm, kde=False, bins=bins, label='after April 2017')
+plt.xlim([-50, 50])
 _ = plt.legend()
 #+END_SRC
 
 #+RESULTS:
 :RESULTS:
+# Out[39]:
 [[file:images/py8889hbk.png]]
 :END:
 
