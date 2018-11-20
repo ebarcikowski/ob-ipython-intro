@@ -42,7 +42,7 @@ module.  All of these can be installed using the included =requirements.txt=.
 
 Simply run,
 #+BEGIN_EXAMPLE
-pip3 install -r requirements
+pip3 install -r requirements.txt
 #+END_EXAMPLE
 
 This will work fine in a virtual environment, just make sure you load it before
